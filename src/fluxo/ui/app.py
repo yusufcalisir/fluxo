@@ -250,6 +250,55 @@ with st.sidebar:
 def get_state(name: str) -> dict:
     s = all_states.get(name)
     return s if isinstance(s, dict) else {}
+
+# Initialize search_query in global scope to avoid NameError
+search_query = ""
+
+# --- SIDEBAR & BRANDING ---
+with st.sidebar:
+    # Text-based CSS logo
+    st.markdown("""
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0 20px 0;">
+            <div style="background: linear-gradient(135deg, #3B82F6, #10B981); border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);">
+                F
+            </div>
+            <div style="font-size: 26px; font-weight: 700; color: #F9FAFB; letter-spacing: -0.5px;">
+                Fluxo Engine
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Project Settings
+    with st.expander("🛠 Project Settings", expanded=not bool(st.session_state.manifest_path)):
+        new_path = st.text_input(
+            "Manifest Path (fluxo.yaml)", 
+            value=st.session_state.manifest_path,
+            placeholder="e.g. example_project/fluxo.yaml"
+        )
+        if new_path != st.session_state.manifest_path:
+            st.session_state.manifest_path = new_path
+            st.rerun()
+
+    if not st.session_state.manifest_path:
+        st.warning("⚠️ No manifest file detected.")
+        st.info("Please provide a path to a `fluxo.yaml` file in the settings above to initialize the engine.")
+        st.stop()
+
+    # Attempt to parse
+    try:
+        manifest = parse_manifest(st.session_state.manifest_path)
+        graph = FluxoGraph(manifest)
+        state_manager = StateManager()
+        all_states = state_manager.get_all_states()
+        tasks = graph.get_execution_order()
+        is_online = True
+    except Exception as e:
+        is_online = False
+        error_detail = str(e)
+        tasks = []
+        all_states = {}
+        st.error(f"Failed to load manifest: {error_detail}")
+        st.stop()
     
     # PULSE Check
     with st.container():

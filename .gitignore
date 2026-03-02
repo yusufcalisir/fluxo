@@ -66,9 +66,6 @@ htmlcov/
 *.txt
 !requirements.txt
 
-# Streamlit
-.streamlit/
-
 # Type checking
 .mypy_cache/
 .pyre/

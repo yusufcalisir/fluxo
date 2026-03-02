@@ -184,28 +184,26 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# Context Loading
-manifest_path = "fluxo.yaml"
-try:
-    manifest = parse_manifest(manifest_path)
-    graph = FluxoGraph(manifest)
-    state_manager = StateManager()
-    all_states = state_manager.get_all_states()
-    tasks = graph.get_execution_order()
-    is_online = True
-except Exception as e:
-    is_online = False
-    error_detail = str(e)
-    tasks = []
-    all_states = {}
+# Context Loading & Discovery
+def discover_manifest():
+    """Attempt to find a fluxo.yaml in common locations."""
+    search_paths = [
+        "fluxo.yaml",                  # Current Directory
+        "example_project/fluxo.yaml",  # Example Project relative to root
+        "../fluxo.yaml",               # Parent Directory
+    ]
+    for p in search_paths:
+        if Path(p).exists():
+            return str(p)
+    return None
 
-def get_state(name: str) -> dict:
-    s = all_states.get(name)
-    return s if isinstance(s, dict) else {}
+# Use session state to persist the manifest path
+if "manifest_path" not in st.session_state:
+    st.session_state.manifest_path = discover_manifest() or ""
 
 # --- SIDEBAR & BRANDING ---
 with st.sidebar:
-    # Text-based CSS logo to fix any image background issues completely
+    # Text-based CSS logo
     st.markdown("""
         <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0 20px 0;">
             <div style="background: linear-gradient(135deg, #3B82F6, #10B981); border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);">
@@ -216,6 +214,42 @@ with st.sidebar:
             </div>
         </div>
     """, unsafe_allow_html=True)
+    
+    # Project Settings
+    with st.expander("🛠 Project Settings", expanded=not bool(st.session_state.manifest_path)):
+        new_path = st.text_input(
+            "Manifest Path (fluxo.yaml)", 
+            value=st.session_state.manifest_path,
+            placeholder="e.g. example_project/fluxo.yaml"
+        )
+        if new_path != st.session_state.manifest_path:
+            st.session_state.manifest_path = new_path
+            st.rerun()
+
+    if not st.session_state.manifest_path:
+        st.warning("⚠️ No manifest file detected.")
+        st.info("Please provide a path to a `fluxo.yaml` file in the settings above to initialize the engine.")
+        st.stop()
+
+    # Attempt to parse
+    try:
+        manifest = parse_manifest(st.session_state.manifest_path)
+        graph = FluxoGraph(manifest)
+        state_manager = StateManager()
+        all_states = state_manager.get_all_states()
+        tasks = graph.get_execution_order()
+        is_online = True
+    except Exception as e:
+        is_online = False
+        error_detail = str(e)
+        tasks = []
+        all_states = {}
+        st.error(f"Failed to load manifest: {error_detail}")
+        st.stop()
+
+def get_state(name: str) -> dict:
+    s = all_states.get(name)
+    return s if isinstance(s, dict) else {}
     
     # PULSE Check
     with st.container():

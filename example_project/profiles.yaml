@@ -1,0 +1,3 @@
+dev:
+  connection_type: duckdb
+  db_path: fluxo_target.duckdb

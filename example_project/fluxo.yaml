@@ -1,0 +1,31 @@
+profile_target: dev
+
+tasks:
+  # Existing user pipeline
+  - name: raw_users
+    source_sql: models/extract_users.sql
+    tests:
+      not_null: ["id"]
+      unique: ["id"]
+
+  - name: clean_users
+    source_sql: models/transform_users.sql
+    tests:
+      not_null: ["id", "status"]
+      accepted_values:
+        status: ["active", "inactive"]
+      row_count_min: 1
+
+  # New orders pipeline
+  - name: raw_orders
+    source_sql: models/raw_orders.sql
+    tests:
+      not_null: ["order_id", "user_id", "product"]
+      unique: ["order_id"]
+      row_count_min: 5
+
+  - name: daily_summary
+    source_sql: models/daily_summary.sql
+    tests:
+      not_null: ["order_date", "total_revenue"]
+      row_count_min: 1

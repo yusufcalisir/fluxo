@@ -1,0 +1,24 @@
+services:
+  api:
+    build: .
+    container_name: fluxo-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./example_project:/project
+    command: ["uvicorn", "fluxo.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+
+  ui:
+    build: .
+    container_name: fluxo-ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./example_project:/project
+    environment:
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    command: ["fluxo", "ui"]
+    restart: unless-stopped
+    depends_on:
+      - api

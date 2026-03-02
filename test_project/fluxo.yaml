@@ -1,0 +1,10 @@
+# Fluxo Pipeline Manifest
+profile_target: dev
+
+tasks:
+  - name: example_model
+    source_sql: models/example.sql
+    materialized: table
+    tests:
+      not_null:
+        - id
